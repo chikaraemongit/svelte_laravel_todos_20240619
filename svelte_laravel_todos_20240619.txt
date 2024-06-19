@@ -1,0 +1,286 @@
+#################################### TODO リストを作ってみる20240619　#####################################
+
+php artisan make:model Todo --migration
+
+            $table->string('title');
+            $table->bigInteger('completed');
+
+php artisan make:seeder TodoSeeder
+
+<?php
+namespace Database\Seeders;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+class TodoSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $todos = [
+            [ 'title' => 'Muscle training','completed'=>0 ],
+            [ 'title' => 'Running','completed'=>1 ],
+            [ 'title' => 'Learning React','completed'=>0 ],
+            [ 'title' => 'Learning Vue','completed'=>1 ],
+            [ 'title' => 'Swimming','completed'=>0 ],
+        ];
+        foreach ($todos as $todo) {
+            DB::table('todos')->insert([
+                'title' => $todo['title'],
+                'completed' => $todo['completed'],
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now()
+            ]);
+        }
+    }
+}
+
+
+
+DatabaseSeederのrunの中
+        $this->call([
+            TodoSeeder::class,
+        ]);
+
+php artisan migrate
+php artisan db:seed
+
+データの挿入確認した
+
+PS C:\xampp\laravel-project\next-backend0> php artisan make:controller TodoController   
+   INFO  Controller [C:\xampp\laravel-project\next-backend0\app\Http\Controllers\TodoController.php] created successfully.
+
+
+Todo.phpの中身
+    protected $fillable = [
+        'title',
+        'completed',
+    ];
+
+
+TodoController.phpの中身
+<?php
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;
+use App\Models\Todo;
+use Inertia\Inertia;
+
+class TodoController extends Controller
+{
+    public function index() {
+        $todos = Todo::all();
+        
+        return Inertia::render('Todo',[
+            'todos' => $todos
+        ]);        
+    }
+}
+
+
+web.phpの設定
+
+Route::get('/todos', 'App\Http\Controllers\TodoController@index');
+Route::post('/todos', 'App\Http\Controllers\TodoController@store');
+Route::patch('/todos/{todo:id}', 'App\Http\Controllers\TodoController@update');
+Route::delete('/todos/{todo:id}', 'App\Http\Controllers\TodoController@delete');
+
+
+
+Todo.svelteファイルを作成
+<script>
+    let Pagetitle='Todo'
+    import {inertia} from '@inertiajs/svelte'
+    
+    export let todos;
+    console.log(todos);
+
+    import {router} from '@inertiajs/svelte'
+    function completeTodo(id){
+        router.patch("/todos/"+id)
+    }
+    function deleteTodo(id){
+      if(confirm("削除しますか?")){
+        router.delete("/todos/"+id)
+      }
+    }
+</script>
+<svelte:head>
+<title>{Pagetitle}</title>
+</svelte:head>
+
+<div class="container mx-auto">
+<div class="w-full md:px-10">
+
+  <div class="text-right">
+    <a use:inertia href="/todos/create" class="button py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+        登録
+    </a>    
+  </div>
+
+  <div class="flex flex-col m-2">
+    <div class="-m-1.5 overflow-x-auto">
+      <div class="p-1.5 min-w-full inline-block align-middle">
+        <div class="overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-neutral-700">
+            <thead>
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500">Id</th>
+                  <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500">Title</th>
+                  <th scope="col" class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase dark:text-neutral-500">Completed</th>
+                  <th scope="col" class="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase dark:text-neutral-500">動作</th>
+                </tr>
+              </thead>
+  
+              <tbody class="divide-y divide-gray-200 dark:divide-neutral-700">
+                {#each todos as todo,i}
+                <tr class="hover:bg-gray-100 dark:hover:bg-neutral-700">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{todo.id}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{todo.title}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">{todo.completed}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+
+                    <button on:click={()=>deleteTodo(todo.id)} type="button" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-teal-500 text-white hover:bg-teal-600 disabled:opacity-50 disabled:pointer-events-none">
+                        未完了
+                        </button> 
+                    <button on:click={()=>deleteTodo(todo.id)} type="button" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:pointer-events-none">
+                      削除
+                      </button> 
+                  </td>
+                </tr>
+                {/each}
+              </tbody>
+  
+          </table>
+        </div>
+      </div>
+    </div><div class="m-5">合計:{todos.length}件</div>
+  </div>
+
+</div>
+</div>
+まずはここまで　一覧表示を確認した。
+
+create
+    public function create()
+    {
+        return Inertia::render('CreateTodo');
+    }
+
+
+CreateTodo.svelteファイルの作成
+<script>
+    let Pagetitle='CreateTodo'
+    import {inertia} from '@inertiajs/svelte'
+    
+  import {useForm} from '@inertiajs/svelte'
+  let form=useForm({
+    title:null,
+  })
+
+  export let errors
+  import {router} from '@inertiajs/svelte'
+  function submit(){
+    router.post('/todos',form)
+  }
+  </script>
+  <svelte:head>
+  <title>{Pagetitle}</title>
+  </svelte:head>
+  
+<div class="container mx-auto">
+<div class="w-full md:px-10">
+
+    <div class="text-left">
+      <a use:inertia href="../todos" 
+      class="button m-2 py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-blue-600 text-blue-600 hover:border-blue-500 hover:text-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:border-blue-500 dark:text-blue-500 dark:hover:text-blue-400 dark:hover:border-blue-400">
+      Back to Todos
+      </a>
+    </div>
+    <div class="flex flex-col m-2">
+      <div class="flex flex-col bg-white border shadow-sm rounded-xl p-4 md:p-5 dark:bg-neutral-900 dark:border-neutral-700 dark:shadow-neutral-700/70">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+          Todo Create
+        </h3>
+        <p class="mt-1 text-xs font-medium uppercase text-gray-500 dark:text-neutral-500">
+          タイトルを入力して、登録ボタンをクリックしてください。
+        </p>
+        <form on:submit|preventDefault={submit} class="w-full my-5">
+            <div class="flex flex-wrap -mx-3 mb-6">
+              <div class="w-full md:w-100 px-3 mb-6 md:mb-0">
+                <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="grid-first-name">
+                  Title
+                </label>
+                <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" 
+                d="grid-first-name" 
+                type="text" 
+                bind:value={form.title} 
+                placeholder="タイトル">
+                {#if errors.title} 
+                  <p class="text-red-500">{errors.title}</p>     
+                {/if}
+              </div>
+            </div>
+            <div class="md:flex md:items-center">
+              <div class="md:w-100"></div>
+              <div class="md:w-2/3">
+                <button class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none" 
+                type="submit">
+                  登録
+                </button>
+              </div>
+            </div>
+          </form>
+    
+      </div>
+    </div>
+  
+  </div>
+  </div>
+  
+storeメソッドの作成
+    public function store(Request $request) {
+        $request->validate([
+            'title' => 'required',
+        ]);
+        $todo = new Todo;
+        $todo->title=$request->title;
+        $todo->completed=0;
+        
+        $todo->save();
+        return redirect('/todos');
+    }
+登録を確認した
+
+
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 dark:text-neutral-200">
+                    {#if todo.completed==1}
+                    完了
+                    {/if}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+                    {#if todo.completed==0}
+                    <button on:click={()=>completeTodo(todo.id)} type="button" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-teal-500 text-white hover:bg-teal-600 disabled:opacity-50 disabled:pointer-events-none">
+                    未完了
+                    </button> 
+                    {/if}
+                    <button on:click={()=>deleteTodo(todo.id)} type="button" class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:pointer-events-none">
+                    削除
+                    </button> 
+                  </td>
+このように書き換える
+
+コントローラーupdate 
+    public function update(Todo $todo) {
+        $todo->completed = 1; // completedカラムを1に設定する        
+        $todo->save();
+        return redirect('/todos');
+    }
+
+動作を確認した
+
+コントローラー
+    public function delete(Todo $todo) {
+        $todo->delete();
+        return redirect('/todos');
+    }
+削除を確認した。
